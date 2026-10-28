@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>自分の人生ゲーム</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;900&display=swap">
+<style>
+:root{--bg:#e9f1f7;--ink:#14263b;--card:#fff;--past:#ffd9b0;--future:#cfe6ff;--goal:#ffe45e;--acc:#e8502f;--line:#9db4c9;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101a26;--ink:#e6eef7;--card:#1b2a3b;--past:#6b4a2a;--future:#24476b;--goal:#8a7a12;--line:#3c5169}}
+:root[data-theme="dark"]{--bg:#101a26;--ink:#e6eef7;--card:#1b2a3b;--past:#6b4a2a;--future:#24476b;--goal:#8a7a12;--line:#3c5169}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;line-height:1.6}
+main{max-width:640px;margin:0 auto;padding:16px}
+h1{font-size:1.9rem;font-weight:900;margin:8px 0 4px}
+p.sub{margin:0 0 12px;opacity:.75}
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stats div{flex:1;background:var(--card);border-radius:14px;padding:8px;text-align:center;font-weight:900}
+.stats small{display:block;font-weight:500;opacity:.7}
+.board{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.sq{aspect-ratio:1;border-radius:12px;background:var(--future);display:flex;align-items:center;justify-content:center;font-size:.62rem;text-align:center;padding:3px;position:relative;line-height:1.2}
+.sq.past{background:var(--past)}
+.sq.goal{background:var(--goal);font-weight:900}
+.sq.here{outline:4px solid var(--acc);z-index:1}
+.sq.here::after{content:"●";position:absolute;top:-10px;right:-4px;color:var(--acc);font-size:1.3rem}
+.legend{font-size:.8rem;margin:8px 0;opacity:.8}
+.panel{background:var(--card);border-radius:18px;padding:16px;margin-top:14px;min-height:150px}
+.panel h2{margin:0 0 4px;font-size:1.15rem}
+button{font:inherit;font-weight:900;border:0;border-radius:999px;padding:12px 22px;background:var(--acc);color:#fff;cursor:pointer;margin:8px 8px 0 0}
+button.alt{background:var(--ink);color:var(--bg)}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.die{font-size:2.6rem;font-weight:900}
+.tok{position:absolute;bottom:2px;left:2px;display:flex;gap:2px}
+.tok i{width:14px;height:14px;border-radius:50%;border:2px solid #fff;display:block;font-size:0}
+.sq.item{background:var(--goal)}
+.arr{position:absolute;top:2px;right:4px;font-size:1rem;line-height:1;color:var(--acc);font-weight:900}
+.sq.plain{background:var(--card);opacity:.9}
+.board{max-height:50vh;overflow-y:auto;position:relative;padding:4px}
+.sq.here{outline:none}.sq.here::after{content:none}
+.score{display:grid;gap:6px;margin-bottom:12px}
+.score div{background:var(--card);border-radius:14px;padding:6px 10px;font-size:.82rem;border:3px solid transparent}
+.score div.cur{border-color:var(--acc)}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:middle}
+/* 画面に収める：盤面だけがスクロールし、操作パネルは常に下に固定表示 */
+main{padding:10px 12px;height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px}
+h1{font-size:1.2rem;margin:0}
+p.sub{margin:0;font-size:.7rem}
+.score{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:4px;margin:0}
+.score div{padding:3px 8px;border-width:2px}
+.board{flex:1 1 0;min-height:0;max-height:none;align-content:start}
+.sq{aspect-ratio:1.3;min-height:64px}
+.panel{flex:none;max-height:38dvh;min-height:0;overflow:auto;margin-top:0;padding:10px 14px}
+.panel h2{font-size:1.05rem}
+.panel p{margin:2px 0}
+.panel button{position:sticky;bottom:0;margin:6px 8px 0 0}
+.die{font-size:2rem;line-height:1.2}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:10;padding:20px}
+#modal.on{display:flex}
+#modal div{background:var(--card);color:var(--ink);border-radius:18px;padding:18px 20px;max-width:420px;width:100%}
+#modal h2{margin:0 0 6px;font-size:1.1rem}
+#modal p{margin:4px 0}
+#modal small{opacity:.6}
+</style>
+</head>
+<body>
+<main>
+<h1>自分の人生ゲーム</h1>
+<p class="sub">オレンジ＝実際にあった過去　青＝これから（予定）　黄色＝アイテムマス　矢印の方向に進む</p>
+<div class="score" id="score"></div>
+<div class="board" id="board"></div>
+<div class="panel" id="panel"></div>
+</main>
+<script>
+// ★ここを書き換えれば自分の人生になる。type: past=実際の過去 / future=これから / goal=ゴール
+// d=[お金,友達,やりがい]。item があるマスは、その値が3以上ならアイテム入手（best=一番高い値のアイテムが必ずもらえる）
+const NEED=3;
+const IT={m:{n:"金の貯金箱",e:"💰",k:"お金"},f:{n:"思い出アルバム",e:"📸",k:"友達"},j:{n:"放送部のマイク",e:"🎤",k:"やりがい"}};
+const STORY=[
+{t:"スタート",type:"past",text:"ここから人生スタート！",d:[0,0,0]},
+{t:"救急搬送",type:"past",text:"幼稚園に入る前、家の強化ガラスに頭を打って救急車で運ばれた。周りは大騒ぎ。一回休み。",d:[0,0,0],skip:1},
+{t:"給食の時間",type:"past",text:"幼稚園、嫌いな給食が食べられず、最後まで残してしまった。",d:[0,-1,-1]},
+{t:"夏休みの補修",type:"past",text:"小学校、水泳が下手すぎて毎年夏休みは補修。プールの季節が来るたび憂うつ…。",d:[0,1,-2]},
+{t:"家族で赤穂旅行",type:"past",text:"小学生のとき、両親に赤穂へ連れて行ってもらった。鯛の塩焼きがおいしかった！",d:[0,1,3]},
+{t:"引っ越し",type:"past",text:"引っ越して駅が近くなった！ でも中学校が遠くなって、電車通学に。",d:[-1,-1,1]},
+{t:"放送部",type:"past",text:"中学で放送部に入部。すごく楽しくて、毎日が充実していた！",d:[0,3,4]},
+{t:"高校受験",type:"past",text:"高校受験に失敗…。私立の大商学園高等学校に進学。ここから新しい出会いが始まる。",d:[-2,2,-1]},
+{t:"唐揚げ模擬店",type:"past",text:"高校の模擬店で唐揚げを売って、なんと20万円も稼いだ！",d:[4,2,3]},
+{t:"再会",type:"past",text:"高3のとき、中学の頃仲良かった同級生と再会。そこから付き合い始めた。",d:[0,3,4]},
+{t:"友達のきずな",type:"past",item:"f",text:"仲間との思い出を振り返るイベント。",d:[0,0,0]},
+{t:"マクドでバイト",type:"past",text:"マクドナルドのクルーとしてバイト。大変だけど楽しい！",d:[2,2,2]},
+{t:"貯金チャンス",type:"past",item:"m",text:"バイト代をどうするか考えるイベント。",d:[0,0,0]},
+{t:"趣味の時間",type:"past",text:"ゲームをしたり、音楽を聴いたり。好きなことでエネルギー充電。",d:[0,0,3]},
+{t:"やりがいの扉",type:"past",item:"j",text:"夢中になれた経験を振り返るイベント。",d:[0,0,0]},
+{t:"専門学校",type:"future",text:"情報系の専門学校に進学（予定）。ITの勉強が始まる。",d:[-2,1,3]},
+{t:"TGSに行く",type:"future",text:"専門学校のとき、東京ゲームショウ（TGS）に行く！ ゲーム好きにはたまらない一日。",d:[-2,2,4]},
+{t:"IT企業に就職",type:"future",text:"IT系の企業に就職（予定）。社会人デビュー！",d:[4,0,2]},
+{t:"ブラック企業",type:"future",text:"大失敗…ブラック企業に就職してしまった。働き方がとにかくきつい。",d:[1,-2,-3]},
+{t:"初任給ごはん",type:"future",text:"初任給で両親にごはんをごちそうした！ 親孝行できて、気持ちがほっこり。",d:[-2,2,4]},
+{t:"両親と赤穂旅行",type:"future",text:"今度は両親を旅行に連れて行く（赤穂の予定）。小学生のときに連れて行ってもらった、あの鯛の塩焼きをもう一度！",d:[-3,3,4]},
+{t:"一人暮らし",type:"future",text:"22歳で一人暮らし（予定）。自由だけど家計はカツカツ。",d:[-2,0,3]},
+{t:"結婚",type:"future",text:"24歳で結婚（予定）。式は挙げず、ウェディングフォトだけ撮る。",d:[-2,2,4]},
+{t:"ご褒美ガチャ",type:"future",item:"best",text:"ここまでの人生のご褒美。いちばん育てた力のアイテムがもらえる！",d:[0,0,0]},
+{t:"コストコで働く",type:"future",text:"転機！ コストコに行くのが大好きだから、いっそコストコで働くことに。",d:[0,2,4]},
+{t:"小豆島へ旅行",type:"future",text:"ご褒美に日本中を旅行。日帰りはナシ！ まずは小豆島へ。",d:[-3,1,4]},
+{t:"未来の自分",type:"goal",text:"ゴール！",d:[0,0,0]}
+];
+// ★ 嵩増し用マス：年齢（時期）ごとの架空の学校・生活の出来事。「タイトル|説明|能力(0お金/1友達/2やりがい)|増減」
+const KEY=["お金","友達","やりがい"];
+const POOL={
+baby:["積み木|積み木で高い塔ができた！|2|1","お昼寝|ぐっすりお昼寝した。|2|1","落書き|壁にお絵かきして怒られた…|2|-1","砂場|砂場で泥だらけになるまで遊んだ。|1|1"],
+kinder:["かけっこ|運動会のかけっこで1位に！|2|2","お遊戯会|お遊戯会で大きな声が出せた。|2|1","ケンカ|友達とおもちゃでケンカしてしまった。|1|-1","誕生日会|お友達の誕生日会に呼ばれた。|1|1"],
+es1:["遠足|遠足でお弁当を交換した。|1|1","九九テスト|九九の暗記が間に合わなかった…|2|-1","係活動|生き物係をがんばった。|2|1","鬼ごっこ|校庭でみんなと鬼ごっこ。|1|1"],
+es2:["リレー|運動会のリレー選手に選ばれた！|1|2","宿題わすれ|宿題を忘れて先生に怒られた。|2|-1","修学旅行|修学旅行の夜、みんなで枕投げ。|1|2","児童会|児童会の仕事を手伝った。|2|1"],
+jh:["入学式|ぶかぶかの制服で入学式。|2|1","定期テスト|テスト勉強が間に合わなかった…|2|-2","体育祭|体育祭でクラスが盛り上がった！|1|2","部活見学|いろんな部活を見学した。|2|1","文化祭|文化祭の準備で夜まで学校に残った。|1|1","進路面談|先生との進路面談で緊張した。|2|-1"],
+hs:["席替え|席替えで仲の良い友達と近くになった！|1|1","小テスト|小テストで赤点を取ってしまった。|2|-1","購買|購買のパンの争奪戦に勝った！|2|1","体育祭|体育祭で応援団をやった。|1|2","文化祭|文化祭の準備が楽しかった。|1|2","居残り|居残りで課題を終わらせた。|2|-1","修学旅行|修学旅行で班行動。思い出ができた。|1|2"],
+hs3:["進路相談|進路について先生と相談した。|2|1","面接練習|面接練習で言葉に詰まった…|2|-1","卒業アルバム|卒業アルバムの写真撮影。|1|1","最後の文化祭|最後の文化祭を全力で楽しんだ。|1|2"],
+baito:["シフト増|シフトが増えてお給料アップ！|0|2","まかない|まかないがおいしかった。|2|1","大忙し|ランチタイムが大忙しだった。|2|-1","常連さん|常連さんに顔を覚えてもらえた。|1|1","課題の山|課題が重なって寝不足に。|2|-1","友達と遊ぶ|友達と遊びに行って散財した。|0|-1"],
+voc:["プログラミング|プログラミングの授業でバグが直った！|2|2","資格試験|資格試験に向けて勉強中。|2|1","徹夜の課題|課題の締め切りで徹夜…|2|-1","学園祭|学園祭でグループ発表をした。|1|2"],
+job:["説明会|会社説明会に参加した。|2|1","面接|面接で緊張して失敗した…|2|-1","エントリー|エントリーシートを書き上げた。|2|1","内定|内定の連絡をもらった！|0|2"],
+work:["新人研修|新人研修で同期と仲良くなった。|1|2","給料日|給料日にちょっと贅沢した。|0|1","残業|残業が続いてぐったり…|2|-2","先輩ランチ|先輩とのランチで相談できた。|1|1"],
+adult:["休日|休日にのんびり過ごした。|2|1","自炊|自炊に挑戦して成功！|2|1","急な出費|急な出費が発生した…|0|-1","友達から連絡|友達から連絡が来た。|1|1"]
+};
+const STAGE=[0,"baby","kinder","es1","es2","es2","jh","jh","hs","hs","hs3","hs","baito","baito","baito","hs3","voc","voc","job","work","work","adult","adult","adult","adult","adult","adult"];
+function makeSQ(full){const out=[],cnt={};
+STORY.forEach((s,i)=>{
+if(full&&i>0){const n=3+(((i-1)%7)<5?1:0),pk=STAGE[i];
+for(let j=0;j<n;j++){const a=POOL[pk],c=cnt[pk]=(cnt[pk]||0)+1,e=a[(c-1)%a.length].split("|"),k=+e[2],v=+e[3],d=[0,0,0];d[k]=v;
+out.push({t:e[0],sub:KEY[k]+(v>0?"+":"")+v,type:"plain",text:e[1],d})}}
+out.push(s)});
+return out}
+let SQ=[],mode=false;
+const COL=["#e8502f","#2a7de1","#2fa84f","#a23fd1"];
+const $=id=>document.getElementById(id);
+const board=$("board"),panel=$("panel");
+let P=[],cur=0,busy=false;
+let cells=[];
+function buildBoard(){
+board.innerHTML="";
+const order=SQ.map((_,i)=>{const r=Math.floor(i/6),c=i%6;return r%2?r*6+(5-c):i});
+cells=SQ.map((s,i)=>{const e=document.createElement("div");e.className="sq "+s.type+(s.item?" item":"");e.style.order=order[i];const dir=i===SQ.length-1?"":(i%6<5?(Math.floor(i/6)%2?"←":"→"):"↓");e.innerHTML="<span>"+s.t+(s.sub?"<br><b>"+s.sub+"</b>":"")+"</span><b class='arr'>"+dir+"</b><div class='tok'></div>";board.appendChild(e);return e});
+cells.forEach((e,i)=>{if(SQ[i].type==="plain")return;e.style.cursor="pointer";e.onclick=()=>info(SQ[i])});
+board.scrollTop=0}
+const fmt=d=>"お金 "+(d[0]>=0?"+":"")+d[0]+" / 友達 "+(d[1]>=0?"+":"")+d[1]+" / やりがい "+(d[2]>=0?"+":"")+d[2];
+const items=p=>p.items.map(k=>IT[k].e).join("")||"なし";
+const md=document.createElement("div");md.id="modal";md.onclick=()=>md.classList.remove("on");document.body.appendChild(md);
+function info(s){md.innerHTML="<div><h2>"+s.t+"</h2><p>"+s.text+"</p>"+(s.d.some(x=>x)?"<p>"+fmt(s.d)+"</p>":"")+(s.item?"<p>"+(s.item==="best"?"いちばん高い力のアイテムが必ずもらえる":IT[s.item].e+" "+IT[s.item].n+"：<b>"+IT[s.item].k+"が"+NEED+"以上</b>でもらえる")+"</p>":"")+"<small>タップで閉じる</small></div>";md.classList.add("on")}
+function draw(){
+if(P.length){const c=cells[P[cur].pos];board.scrollTo({top:c.offsetTop-board.clientHeight/2,behavior:"smooth"})}
+cells.forEach(c=>c.querySelector(".tok").innerHTML="");
+P.forEach(p=>{cells[p.pos].querySelector(".tok").innerHTML+='<i style="background:'+COL[p.n-1]+'"></i>'});
+$("score").innerHTML=P.map((p,i)=>'<div class="'+(i===cur?"cur":"")+'"><span class="dot" style="background:'+COL[p.n-1]+'"></span><b>P'+p.n+'</b>'+(p.done?"（ゴール）":"")+' お金'+p.m+' 友達'+p.f+' やりがい'+p.j+'　アイテム '+items(p)+'</div>').join("")}
+function setup(){
+P=[];cur=0;SQ=makeSQ(false);buildBoard();draw();
+panel.innerHTML="<h2>どっちで遊ぶ？</h2><p>穴埋めなし＝自分の人生の出来事だけ。穴埋めあり＝学校や毎日の出来事マスも入って長め。</p>";
+[["穴埋めなし",false],["穴埋めあり",true]].forEach(([l,f])=>{const b=document.createElement("button");b.textContent=l+"（"+makeSQ(f).length+"マス）";b.onclick=()=>{mode=f;SQ=makeSQ(f);buildBoard();players()};panel.appendChild(b)})}
+function players(){
+draw();panel.innerHTML="<h2>何人で遊ぶ？</h2><p>"+(mode?"穴埋めあり":"穴埋めなし")+"・1〜4人。最後にアイテムがいちばん多い人が優勝！</p>";
+[1,2,3,4].forEach(n=>{const b=document.createElement("button");b.textContent=n+"人";b.onclick=()=>begin(n);panel.appendChild(b)});
+const r=document.createElement("button");r.className="alt";r.textContent="← 戻る";r.onclick=setup;panel.appendChild(r)}
+function begin(n){P=[];for(let i=1;i<=n;i++)P.push({n:i,pos:0,m:0,f:0,j:0,skip:0,items:[],done:false});cur=0;turn()}
+function turn(msg){
+draw();const p=P[cur];
+panel.innerHTML=(msg||"")+"<h2>P"+p.n+"の番</h2>";
+const b=document.createElement("button");b.textContent="ルーレットを回す";b.onclick=roll;panel.appendChild(b)}
+function nextPlayer(){
+if(P.every(p=>p.done))return finish();
+do{cur=(cur+1)%P.length}while(P[cur].done);
+turn()}
+function roll(){
+if(busy)return;const p=P[cur];
+if(p.skip>0){p.skip--;panel.innerHTML="<h2>P"+p.n+"は一回休み</h2><p>今回は動けない…</p>";nb();return}
+busy=true;let n=0;
+const iv=setInterval(()=>{panel.innerHTML='<div class="die">'+(1+Math.floor(Math.random()*6))+'</div>';if(++n>10){clearInterval(iv);const v=1+Math.floor(Math.random()*6);panel.innerHTML='<div class="die">'+v+'</div>';setTimeout(()=>move(v),500)}},70)}
+function nb(label){const b=document.createElement("button");b.className="alt";b.textContent=label||(P.length>1?"次の人へ":"次へ");b.onclick=nextPlayer;panel.appendChild(b)}
+function move(v){
+busy=false;const p=P[cur];p.pos=Math.min(p.pos+v,SQ.length-1);const s=SQ[p.pos];
+p.m+=s.d[0];p.f+=s.d[1];p.j+=s.d[2];if(s.skip)p.skip=s.skip;
+let h="<h2>P"+p.n+"："+s.t+"</h2><p>"+s.text+"</p>";
+if(s.type==="goal"){p.done=true;h+="<p>P"+p.n+"がゴール！ アイテム："+items(p)+"</p>"}
+else{if(s.d.some(x=>x))h+="<p>"+fmt(s.d)+"</p>";
+if(s.item){let k=s.item;
+if(k==="best"){k=p.m>=p.f&&p.m>=p.j?"m":p.f>=p.j?"f":"j"}
+if(k&&(s.item==="best"||(k==="m"?p.m:k==="f"?p.f:p.j)>=NEED)){p.items.push(k);h+="<p><b>"+IT[k].e+" "+IT[k].n+"を手に入れた！</b></p>"}
+else h+="<p>"+IT[k].k+"が"+NEED+"以上ないと手に入らない…。ざんねん！</p>"}}
+draw();panel.innerHTML=h;nb()}
+function finish(){
+const tot=p=>p.m+p.f+p.j;
+const r=[...P].sort((a,b)=>b.items.length-a.items.length||tot(b)-tot(a));
+let h="<h2>結果発表</h2>";
+r.forEach((p,i)=>{h+="<p>"+(i+1)+"位　P"+p.n+"　アイテム "+p.items.length+"個 "+items(p)+"（合計 "+tot(p)+"）</p>"});
+if(P.length>1){const top=r[0].items.length,w=r.filter(p=>p.items.length===top);
+h+=w.length>1?"<p>アイテム数が同じなので、能力値の合計で順位をつけたよ。</p>":""}
+h+="<p>優勝：P"+r[0].n+" 🎉</p>";
+panel.innerHTML=h;const b=document.createElement("button");b.textContent="もう一度遊ぶ";b.onclick=setup;panel.appendChild(b)}
+setup();
+
+</script>
+</body>
+</html>
